@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>palette</title>
+		<script src="js/jquery-3.3.1.min.js" type="text/javascript" charset="utf-8"></script>
+		<script src="js/tensorflow 0.12.0.js" type="text/javascript" charset="utf-8"></script>
+		<script>
+			
+	    </script>
+		<script type="text/javascript">
+			//禁止页面滚动
+			document.addEventListener('touchmove', function(event) {
+			    event.preventDefault();
+			}, false);
+			
+			var site_pre = {'x':0,'y':0};
+			var site_now = {'x':0,'y':0};
+			var width_canvas = 28;
+			var height_canvas = 28;
+				
+			window.onload = function(){
+				//画板
+				var canvas = $('#canvas');
+				canvas[0].setAttribute('width',width_canvas);
+				canvas[0].setAttribute('height',height_canvas);
+				var canvas_cont = canvas[0].getContext('2d');
+				canvas_cont.fillStyle = '#FFFFFF';    //设置画板背景颜色
+				canvas_cont.fillRect(0,0,width_canvas,height_canvas);    //设置画板背景大小
+				var canvas_picURL = canvas[0].toDataURL('image/png')
+				
+				var canvas_img = $('.canvas_img');
+				canvas_img[0].src = canvas_picURL;
+				
+				canvas[0].addEventListener('touchstart', paintDown);
+				canvas[0].addEventListener('touchmove', paint);
+				
+				//Tensorflow
+				// Notice there is no 'import' statement. 'tf' is available on the index-page
+				// because of the script tag above.
+		
+				// Define a model for linear regression.
+				const model = tf.sequential();
+				model.add(tf.layers.dense({units: 1, inputShape: [1]}));
+		
+				// Prepare the model for training: Specify the loss and the optimizer.
+				model.compile({loss: 'meanSquaredError', optimizer: 'sgd'});
+		
+				// Generate some synthetic data for training.
+				const xs = tf.tensor2d([1, 2, 3, 4], [4, 1]);
+				const ys = tf.tensor2d([1, 3, 5, 7], [4, 1]);
+		
+				// Train the model using the data.
+				model.fit(xs, ys, {epochs: 10}).then(() => {
+					// Use the model to do inference on a data point the model hasn't seen before:
+					// Open the browser devtools to see the output
+					var time_start = (new Date()).valueOf();
+					for(i=0;i<1000;i++){
+						model.predict(tf.tensor2d([5], [1, 1])).print();
+					}
+					var time_end = (new Date()).valueOf();
+					$('#test')[0].innerHTML = (time_end - time_start) / 1000;
+					//alert((time_end - time_start) / 1000);
+				});
+			}
+			
+			//下笔
+			function paintDown(event){
+				//记录下笔位置
+				site_pre.x = width_canvas * event.touches[0].pageX / document.body.offsetWidth;
+				site_pre.y = height_canvas * event.touches[0].pageY / document.body.offsetWidth;
+			}
+			
+			//开始绘画
+			function paint(event){
+				site_now.x = width_canvas * event.touches[0].pageX / document.body.offsetWidth;
+				site_now.y = height_canvas * event.touches[0].pageY / document.body.offsetWidth;
+				
+				if(site_now.x==site_pre.x){
+					site_now.x = site_pre.x + 0.1;
+				}
+				if(site_now.y==site_pre.y){
+					site_now.y = site_pre.y + 0.1;
+				}
+				
+				var canvas = $('#canvas');
+				var canvas_cont = canvas[0].getContext('2d');
+				canvas_cont.strokeStyle = '#000000';
+				canvas_cont.lineCap = "round";    //设置笔触形状
+				canvas_cont.lineWidth = 1;    //设置线粗
+				canvas_cont.moveTo(site_pre.x, site_pre.y);    //设置绘画起点
+				canvas_cont.lineTo(site_now.x, site_now.y);    //设置绘画落点
+				canvas_cont.stroke();
+				
+				site_pre.x = site_now.x;
+				site_pre.y = site_now.y;
+				
+				var canvas_img = $('.canvas_img');
+				var canvas_picURL = canvas[0].toDataURL('image/png')
+				canvas_img[0].src = canvas_picURL;
+			}
+		</script>
+		<style type="text/css">
+			html{
+				background: goldenrod;
+				font-size: 10px;
+			}
+			body{
+				font-size: 5.6rem;
+				margin: 0;
+			}
+			canvas{
+				position: fixed;
+				z-index: 999;
+				width: 100%;
+				opacity: 0;
+			}
+			.paletteDiv{
+				position: fixed;
+				width: 100%;
+			}
+			.canvas_img{
+				width: 100%;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="paletteDiv">
+			<canvas id="canvas"></canvas>
+			<img id="canvas_img" class="canvas_img"/>
+			
+		</div>
+		<div id="test" style="position: fixed;bottom: 0;font-size: 2rem;"></div>
+		<img id="test1" src="img/1.jpg"/>
+	</body>
+</html>
